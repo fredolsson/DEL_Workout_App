@@ -1,40 +1,40 @@
-import os
+from flask import Flask, request, jsonify
 import openai
-from dotenv import load_dotenv
-openai.api_key = os.getenv("OPENAI_API_KEY")
-model = "gpt-3.5-turbo"
+import os
 
-def get_completion_from_msgs(messages, model=model):
+
+app = Flask(__name__)
+
+# This API is just a test
+@app.route('/api/data', methods=['GET'])
+def get_data():
+    
+    data = {"message": "Hello from Flask!"}
+    return jsonify(data)
+
+# This API can be called to receive a response from GPT. 
+@app.route('/api/chatbot/response', methods=['POST'])
+def chatbot():
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    # Get the user's query from the request
+    user_query = request.json.get('query')
+
+    user_msg = {"role" : "user", "content" : user_query}
+    messages = [user_msg]
+
+    model = "gpt-3.5-turbo-0613"
     response = openai.ChatCompletion.create(
         model=model,
         messages=messages,
-        temperature=0
+        temperature=0.9,
     )
-    return response.choices[0].message["content"]
 
-def gen_system_msg(msg):
-    return {"role" : "system", "content" : msg}
+    response = response.choices[0].message["content"]
 
-def gen_user_msg(msg):
-    return {"role" : "user", "content" : msg}
+    # Return the response in JSON format
+    return jsonify({"response": response})
 
-def gen_assistant_msg(msg):
-    return {"role" : "assistant", "content" : msg}
 
-def main():
-    messages = []
-    prompt = f'''
-                You are a rude assistant and answer unhelpfully to every single message    
-    '''
+if __name__ == '__main__':
+    app.run()
 
-    msg = input()
-
-    messages.append(gen_user_msg(msg))
-
-    response = get_completion_from_msgs(messages)
-    messages.append(gen_assistant_msg(msg))
-    print(response)
-    # Aaaand so on so forth
-
-if __name__ == "__main__":
-    main()
