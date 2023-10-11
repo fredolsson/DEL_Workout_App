@@ -1,20 +1,12 @@
 import io
 from flask import Flask, request, jsonify, send_file, session
 from flask_session import Session
-
 import openai
 import os
-
-
-
 import bcrypt
-
-
 from flask_sqlalchemy import SQLAlchemy
-
 from sqlalchemy import create_engine
 from pandas import DataFrame as df
-
 import psycopg2
 
 DATABASE_URL = 'postgres://brjyyccwesckpy:638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589@ec2-52-17-31-244.eu-west-1.compute.amazonaws.com:5432/dblua8qg5ehr18'
@@ -22,7 +14,6 @@ DATABASE_URL = 'postgres://brjyyccwesckpy:638b0040bc3765bf41a90f060604f05e2130fd
 app = Flask(__name__)
 
 app.secret_key = os.getenv("APP_SECRET_KEY")
-
 
 @app.route('/api/register', methods=['POST'])
 def register():
