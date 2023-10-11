@@ -4,13 +4,106 @@ from flask_session import Session
 
 import openai
 import os
-import psycopg2
+
+
+
+import bcrypt
+
 
 from flask_sqlalchemy import SQLAlchemy
 
+from sqlalchemy import create_engine
+from pandas import DataFrame as df
+
+import psycopg2
+
+DATABASE_URL = 'postgres://brjyyccwesckpy:638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589@ec2-52-17-31-244.eu-west-1.compute.amazonaws.com:5432/dblua8qg5ehr18'
+
 app = Flask(__name__)
-#app.secret_key = os.getenv("APP_SECRET_KEY")
-app.secret_key = "very_secret_key"
+
+app.secret_key = os.getenv("APP_SECRET_KEY")
+
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    # test connection
+    try:
+        username = request.json.get('username')
+
+        # create database connection
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM credentials WHERE username=%s;", [username])
+
+        exists = cur.fetchall()
+        if len(exists) != 0:
+            print("usernme alredy in use ")   
+            message = "usernme alredy in use "
+            
+        
+        else:
+            password = request.json.get('password')
+            password = password.encode('utf-8')
+            hashed = bcrypt.hashpw(password, bcrypt.gensalt()).decode('utf-8')
+            cur.execute("INSERT INTO credentials (username, password) VALUES(%s, %s);", (username, hashed))
+            conn.commit()
+            print("successfully registered")
+            cur.execute("SELECT * FROM credentials;")
+            print(cur.fetchall())
+
+            message = "successfully registered"
+            
+        cur.close()
+        conn.close()
+        return jsonify({"message": message})
+
+    except Exception as error:
+        print('Cause:{}'.format(error)) 
+        return jsonify({"message": "error"}) 
+    
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        username = request.json.get('username')
+
+        cur.execute("SELECT id FROM credentials WHERE username=%s;", [username])
+
+        exists = cur.fetchall()
+        print(exists)
+        if len(exists) == 0:
+            print(" user doesn't exist ")
+            message = " user doesn't exist "
+        
+        elif len(exists) == 1:
+            
+            cur.execute("SELECT password FROM credentials WHERE id=%s;", [exists[0][0]])  
+            stored_password = cur.fetchone()
+            password = request.json.get('password')
+            if bcrypt.checkpw(password.encode('utf-8'), stored_password[0].encode('utf-8')):
+                print("successfully logged in")
+                message = "successfully logged in"
+            else:
+                print("wrong password")
+                message = "wrong password"
+        else:
+            print(" there are more than one user with this username")
+            message = "there are more than one user with this username"
+            
+        cur.close()
+        conn.close()
+        return jsonify({"message": message}) 
+
+        
+    except Exception as error:
+        print('Cause:{}'.format(error))  
+        return jsonify({"message": "error"}) 
+
+        
+
+
 
 # This API can be called to receive a response from GPT. 
 @app.route('/api/chatbot/response', methods=['POST'])
@@ -60,6 +153,7 @@ def send_profile_pic():
         conn.rollback()
         print("Error inserting row:", error)
 
+
     finally:
         cursor.close()
         conn.close()
@@ -94,6 +188,8 @@ def set_profile_pic(profile_pic):
 
         insert_query = "INSERT INTO user_profiles (username, profile_pic) VALUES (%s, %s);"
         cursor.execute(insert_query, (username, profile_pic))
+
+
 
         conn.commit()
         print("Row inserted successfully.")
