@@ -103,7 +103,7 @@ def chatbot():
     # Get the user's query from the request
     user_query = request.json.get('query')
 
-    user_msg = {"role" : "user", "content" : user_query}
+    user_msg = {"role" : "user", "content" : user_query+". You response needs to be maximum five sentences."}
     messages = [user_msg]
 
     model = "gpt-3.5-turbo-0613"
