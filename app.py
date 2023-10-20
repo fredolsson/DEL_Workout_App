@@ -8,6 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from pandas import DataFrame as df
 import psycopg2
+from dotenv import load_dotenv
 
 DATABASE_URL = 'postgres://brjyyccwesckpy:638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589@ec2-52-17-31-244.eu-west-1.compute.amazonaws.com:5432/dblua8qg5ehr18'
 
@@ -92,32 +93,45 @@ def login():
         print('Cause:{}'.format(error))  
         return jsonify({"message": "error"}) 
 
-        
-
-
-
 # This API can be called to receive a response from GPT. 
 @app.route('/api/chatbot/response', methods=['POST'])
 def chatbot():
     openai.api_key = os.getenv("OPENAI_API_KEY")
     # Get the user's query from the request
-    user_query = request.json.get('query')
 
-    user_msg = {"role" : "user", "content" : user_query+". You response needs to be maximum five sentences."}
-    messages = [user_msg]
+    user_id = get_user_id(request.json.get('username'))
+
+    update_chat_history(user_id=user_id, role='user', new_message=request.json.get('query'))
+    
+    chat_history = get_chat_history(user_id=user_id)
+
+    system_prompt = """
+        You are a personal trainer. You will do your best to answer each question
+        with a tone that imitates how a personal trainer would answer it.
+        You will answer each question with a maximum of five sentences. Note that 
+        you do not need to use 3 sentences if you do not need it. You will start 
+        each message with 'Hello there young running padawan!', and then answer the question.
+        """
+
+    system_msg = {"role" : "system", "content" : system_prompt}
+
+    chat_history.append(system_msg)
 
     model = "gpt-3.5-turbo-0613"
     response = openai.ChatCompletion.create(
         model=model,
-        messages=messages,
+        messages=chat_history,
         temperature=0.9,
     )
 
     response = response.choices[0].message["content"]
 
+    update_chat_history(user_id=user_id, role='assistant', new_message=response)
+
     # Return the response in JSON format
     return jsonify({"response": response})
-# FIX: Get the username from session['username'] instead
+
+
 @app.route('/api/get_profile_pic')
 def send_profile_pic():
 
@@ -214,9 +228,7 @@ def test_session():
     
     send_profile_pic()
 
-def get_user_id():
-
-    username = session['username']
+def get_user_id(username):
 
     try:
         conn = psycopg2.connect(
@@ -240,6 +252,59 @@ def get_user_id():
         print("Error inserting row:", error)
 
     return user_id
+
+def get_chat_history(user_id):
+    try:
+        conn = psycopg2.connect(
+            dbname="dblua8qg5ehr18",
+            user="brjyyccwesckpy",
+            password="638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589",
+            host="ec2-52-17-31-244.eu-west-1.compute.amazonaws.com",
+            port="5432"
+        )
+        cursor = conn.cursor()
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL:", error)
+
+    # Check security on this query
+    query = "SELECT * FROM user_chat_history WHERE user_id = %s ORDER BY message_id;"
+
+    cursor.execute(query, (user_id, ))
+    
+    chat_history_object = cursor.fetchall()
+
+    chat_history = []
+
+    for message in chat_history_object:
+        msg_object = {"role": message[2], "content": message[3]}
+        chat_history.append(msg_object)
+
+    cursor.close()
+    conn.close()
+
+    return chat_history
+
+def update_chat_history(user_id, role, new_message):
+    try:
+            conn = psycopg2.connect(
+                dbname="dblua8qg5ehr18",
+                user="brjyyccwesckpy",
+                password="638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589",
+                host="ec2-52-17-31-244.eu-west-1.compute.amazonaws.com",
+                port="5432"
+            )
+            cursor = conn.cursor()
+    except (Exception, psycopg2.Error) as error:
+        print("Error while connecting to PostgreSQL:", error)
+
+    query = """INSERT INTO user_chat_history (user_id, role, content) VALUES (%s, %s, %s);"""
+
+    cursor.execute(query, (user_id, role, new_message))
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
 
 if __name__ == '__main__':
     app.run()
