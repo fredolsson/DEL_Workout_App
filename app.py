@@ -14,7 +14,7 @@ DATABASE_URL = 'postgres://brjyyccwesckpy:638b0040bc3765bf41a90f060604f05e2130fd
 
 app = Flask(__name__)
 
-app.secret_key = os.getenv("APP_SECRET_KEY")
+#app.secret_key = os.getenv("APP_SECRET_KEY")
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -96,7 +96,7 @@ def login():
 # This API can be called to receive a response from GPT. 
 @app.route('/api/chatbot/response', methods=['POST'])
 def chatbot():
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+    #openai.api_key = os.getenv("OPENAI_API_KEY")
     # Get the user's query from the request
 
     user_id = get_user_id(request.json.get('username'))
