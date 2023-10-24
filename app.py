@@ -226,6 +226,28 @@ def set_session(username):
 def test_session():
     
     send_profile_pic()
+    
+@app.route('/api/get_workout', methods=['GET'])
+def get_workout_specific_date():
+    
+    date = request.json.get('date')
+    user_id = get_user_id(request.json.get('username'))
+    DATABASE_URL = 'postgres://brjyyccwesckpy:638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589@ec2-52-17-31-244.eu-west-1.compute.amazonaws.com:5432/dblua8qg5ehr18'
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    cur = conn.cursor()
+    cur.execute(f"SELECT workout FROM workout_schedule WHERE date = '{date}' AND user_id = '{user_id}';")
+    exists = cur.fetchall()
+    if len(exists) == 0:
+        message = "Rest Day"
+    
+    elif len(exists) == 1:
+        message = exists[0][0]
+    
+    cur.close()
+    conn.close() 
+    return jsonify({"message": message}) 
+
+    
 
 def get_user_id(username):
 
