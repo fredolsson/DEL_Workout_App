@@ -227,7 +227,7 @@ def test_session():
     
     send_profile_pic()
     
-@app.route('/api/get_workout', methods=['GET'])
+@app.route('/api/get_workout', methods=['POST'])
 def get_workout_specific_date():
     
     date = request.json.get('date')
