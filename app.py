@@ -245,7 +245,7 @@ def get_workout_specific_date():
     
     cur.close()
     conn.close() 
-    return jsonify({"message": message}) 
+    return jsonify({"response": message}) 
 
     
 
