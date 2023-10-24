@@ -14,6 +14,7 @@ load_dotenv()
 DATABASE_URL = 'postgres://brjyyccwesckpy:638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589@ec2-52-17-31-244.eu-west-1.compute.amazonaws.com:5432/dblua8qg5ehr18'
 user_id = 11
 
+
 def create_program():
     #update_chat_history(user_id=user_id, role='user', new_message= new_message)
     openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -34,7 +35,7 @@ def create_program():
             or 3 months ahead in time. 
             Todays date is {date.today() }, All workouts should be in kilometers. 
             When you have presented the workout plan you should say "Does this sound good? If you want 
-            to go ahed and add this plan
+            to go ahead and add this plan
             to your schedule type yes"
             and if the user agrees to the plan you output only the detailed plan for every day in the following format:
             json object with key being the date “YYYY-MM-DD” and the value being a description 
