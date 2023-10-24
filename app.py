@@ -240,7 +240,7 @@ def get_workout_specific_date():
     if len(exists) == 0:
         message = "Rest Day"
     
-    elif len(exists) == 1:
+    else:
         message = exists[0][0]
     
     cur.close()
