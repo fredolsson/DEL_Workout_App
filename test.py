@@ -7,6 +7,7 @@ import psycopg2
 from dotenv import load_dotenv
 from datetime import date
 import json
+from help_methods import *
 
 load_dotenv()
 
@@ -96,10 +97,8 @@ def get_workout_specific_date(date, user_id):
     
     DATABASE_URL = 'postgres://brjyyccwesckpy:638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589@ec2-52-17-31-244.eu-west-1.compute.amazonaws.com:5432/dblua8qg5ehr18'
     # create database connection
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-    cur = conn.cursor()
-    cur.execute(f"SELECT workout FROM workout_schedule WHERE date = '{date}' AND user_id = '{user_id}';")
-    exists = cur.fetchall()
+    
+    exists = execute("SELECT workout FROM workout_schedule WHERE date = %s AND user_id = %s;", [date, user_id], commit=False)
     if len(exists) == 0:
         print(" workout doesn't exist ")
         message = " user doesn't exist "
@@ -107,8 +106,6 @@ def get_workout_specific_date(date, user_id):
     elif len(exists) == 1:
         print(exists[0][0])
     
-    cur.close()
-    conn.close() 
 
     
     
@@ -122,7 +119,7 @@ def get_workout_specific_date(date, user_id):
     
     
 if __name__ == '__main__':
-    create_program()
+    #create_program()
     get_workout_specific_date("2023-12-16", 13)
 
 def get_chat_history(user_id):
