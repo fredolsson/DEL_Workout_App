@@ -7,11 +7,15 @@ import bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from pandas import DataFrame as df
-import psycopg2
+from dotenv import load_dotenv
+from datetime import date
+from help_methods import *
+from variables_and_prompts import *
 
-DATABASE_URL = 'postgres://brjyyccwesckpy:638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589@ec2-52-17-31-244.eu-west-1.compute.amazonaws.com:5432/dblua8qg5ehr18'
 
 app = Flask(__name__)
+load_dotenv()
+
 
 #app.secret_key = os.getenv("APP_SECRET_KEY")
 
@@ -233,104 +237,65 @@ def get_workout_specific_date():
 
     try:
         user_id = get_user_id(request.json.get('username'))
-        DATABASE_URL = 'postgres://brjyyccwesckpy:638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589@ec2-52-17-31-244.eu-west-1.compute.amazonaws.com:5432/dblua8qg5ehr18'
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-        cur = conn.cursor()
-        cur.execute(f"SELECT workout FROM workout_schedule WHERE date = '{date}' AND user_id = '{user_id}';")
-        exists = cur.fetchall()
+        exists = execute("SELECT workout FROM workout_schedule WHERE date = %s AND user_id = '%s';", [date, user_id],commit = False)
         if len(exists) == 0:
             message = "Rest Day"
         
         else:
             message = exists[0][0]
-        
-        cur.close()
-        conn.close() 
     except Exception as error:
         print("Error while connecting to PostgreSQL:", error)
         message = "username doesn't exist"
             
     return jsonify({"response": message}) 
 
+@app.route('/api/create_workout', methods=['POST'])
+def create_workout():
+    openai.api_key = os.getenv("OPENAI_API_KEY")
     
-
-def get_user_id(username):
-
     try:
-        conn = psycopg2.connect(
-            dbname="dblua8qg5ehr18",
-            user="brjyyccwesckpy",
-            password="638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589",
-            host="ec2-52-17-31-244.eu-west-1.compute.amazonaws.com",
-            port="5432"
+        user_id = get_user_id(request.json.get('username'))
+        
+        exists = execute("SELECT role, content FROM generation_chat_history WHERE user_id = %s;",[user_id], commit=False)
+        if len(exists) == 0:
+            execute("INSERT INTO generation_chat_history (user_id, role, content) VALUES (%s, 'system', %s);", [user_id, prompt_create_scedule], commit=True)
+            print("inserted prompt")
+        execute("INSERT INTO generation_chat_history (user_id, role, content) VALUES (%s, 'user', %s);", [user_id, request.json.get('content')], commit=True)
+        chat_history_object = execute("SELECT * FROM generation_chat_history WHERE user_id = %s ORDER BY id;", [user_id], commit=False)
+        chat_history = []
+        for message in chat_history_object:
+            msg_object = {"role": message[3], "content": message[2]}
+            chat_history.append(msg_object)
+
+        model = "gpt-3.5-turbo-0613"
+        response = openai.ChatCompletion.create(
+            model=model,
+            messages=chat_history,
+            temperature=0,
         )
-        cursor = conn.cursor()
-    except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL:", error)
+        response = response.choices[0].message["content"]
+        execute("INSERT INTO generation_chat_history (user_id, role, content) VALUES (%s, 'assistant', %s);", [user_id, response], commit = True)
+        message = response
+
+        
+        if request.json.get('content').lower() == "yes":
+            print("deleting")
+            delete_workout_for_user(user_id)
+            print("deleted")
+            print("inserting new workout")
+            insert_into_database(user_id, response)
+            print("inserted")
+            delete_create_history(user_id)
+            print("deleted")
+            message = "done"
+            
+    except Exception as error:
+        print(f"error {error}")
+        message = "fail"
     
-    try:
-        select_query = "SELECT id FROM credentials WHERE username = %s;"
-        cursor.execute(select_query, (username,))
-        user_id = cursor.fetchone()[0]
-
-    except (Exception, psycopg2.Error) as error:
-        conn.rollback()
-        print("Error inserting row:", error)
-
-    return user_id
-
-def get_chat_history(user_id):
-    try:
-        conn = psycopg2.connect(
-            dbname="dblua8qg5ehr18",
-            user="brjyyccwesckpy",
-            password="638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589",
-            host="ec2-52-17-31-244.eu-west-1.compute.amazonaws.com",
-            port="5432"
-        )
-        cursor = conn.cursor()
-    except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL:", error)
-
-    # Check security on this query
-    query = "SELECT * FROM user_chat_history WHERE user_id = %s ORDER BY message_id;"
-
-    cursor.execute(query, (user_id, ))
+    return jsonify({"response": message})
     
-    chat_history_object = cursor.fetchall()
-
-    chat_history = []
-
-    for message in chat_history_object:
-        msg_object = {"role": message[2], "content": message[3]}
-        chat_history.append(msg_object)
-
-    cursor.close()
-    conn.close()
-
-    return chat_history
-
-def update_chat_history(user_id, role, new_message):
-    try:
-            conn = psycopg2.connect(
-                dbname="dblua8qg5ehr18",
-                user="brjyyccwesckpy",
-                password="638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589",
-                host="ec2-52-17-31-244.eu-west-1.compute.amazonaws.com",
-                port="5432"
-            )
-            cursor = conn.cursor()
-    except (Exception, psycopg2.Error) as error:
-        print("Error while connecting to PostgreSQL:", error)
-
-    query = """INSERT INTO user_chat_history (user_id, role, content) VALUES (%s, %s, %s);"""
-
-    cursor.execute(query, (user_id, role, new_message))
-
-    conn.commit()
-
-    cursor.close()
-    conn.close()
+    
 
 if __name__ == '__main__':
     app.run()
