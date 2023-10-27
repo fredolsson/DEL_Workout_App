@@ -14,7 +14,6 @@ from variables_and_prompts import *
 
 
 app = Flask(__name__)
-load_dotenv()
 
 
 #app.secret_key = os.getenv("APP_SECRET_KEY")
@@ -251,7 +250,7 @@ def get_workout_specific_date():
 
 @app.route('/api/create_workout', methods=['POST'])
 def create_workout():
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+    #openai.api_key = os.getenv("OPENAI_API_KEY")
     
     try:
         user_id = get_user_id(request.json.get('username'))
