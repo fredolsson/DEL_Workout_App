@@ -8,6 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from pandas import DataFrame as df
 import psycopg2
+from datetime import date
 
 DATABASE_URL = 'postgres://brjyyccwesckpy:638b0040bc3765bf41a90f060604f05e2130fd1daf9382bf72dfa3dd4807f589@ec2-52-17-31-244.eu-west-1.compute.amazonaws.com:5432/dblua8qg5ehr18'
 
@@ -129,6 +130,41 @@ def chatbot():
 
     # Return the response in JSON format
     return jsonify({"response": response})
+
+@app.route('/api/chatbot/generate-program/get_response', methods=['POST'])
+def generate_program():
+    system_prompt = f"""
+        You are a personal trainer. And are going to create a day by day custom running workout plan in 
+        line with the user needs. You will obtain the information you need about the user by asking a 
+        series of questions. The information you want to extract is the following:
+        - Are you training for a specific race? If they are, what date is the race and how long 
+        is it (in kilometers)? And do they have a certain goal time?
+        - If they aren't training for a race, do they have any other running goals?
+        - How many days a week do they have time to workout?
+        - What is their current fitness like? For example are they beginners or advanced?
+        - Have they ran any races before and in that case, what were their personal bests?
+
+        You can ask the user a few questions to get the information before creating the 
+        workout plan. The workout plan should provide a schedule for all days up until the goal race and end with "RACE DAY!"
+        or 3 months ahead in time if the user does not have any race planned.
+
+        If the user agrees to the plan you output only the detailed plan for every day in the following format:
+        json object with key being the date “YYYY-MM-DD” (today's date is {date.today() })and the value being a description 
+        of the workout for that day.  
+
+        You will determine if the user agrees to the plan by asking a final question after outputting the suggested program:
+        - "Does this sound good? If you want 
+        to go ahead and add this plan
+        to your schedule type yes."
+
+        If the answer is "yes", that means the user agrees with the plan.
+        """
+
+    user_id = get_user_id(request.json.get('username'))
+
+    update_chat_history(user_id=user_id, role='user', new_message=request.json.get('query'))
+    
+    chat_history = get_chat_history(user_id=user_id)
 
 
 @app.route('/api/get_profile_pic')
