@@ -7,7 +7,7 @@ import bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from pandas import DataFrame as df
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 from datetime import date
 from help_methods import *
 from variables_and_prompts import *
