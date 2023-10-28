@@ -295,7 +295,7 @@ def create_workout():
         print(f"error {error}")
         message = "fail"
     
-    return jsonify({"response": message})
+    return jsonify({"response": message, "sender":"chatPT"})
     
 @app.route('/api/get_goal', methods=['POST'])
 def get_goal():
