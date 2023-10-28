@@ -36,11 +36,21 @@ def insert_specific_date(user_id, date):
 def set_goals(chat_history, user_id):
     
     # remove old goals
+    
+    chat_history_object = execute("SELECT * FROM generation_chat_history WHERE user_id = %s ORDER BY id;", [user_id], commit=False)
+    chat_history = []
+    content = ""
+    for message in chat_history_object:
+        if message[3] != "system":
+            content += message[2]
+        
+    chat_history.append({"role": "system", "content": prompt_get_user_information+content})
     execute("DELETE FROM user_information WHERE user_id = %s", [user_id], commit=True)
     print(1)
     chat_history.insert(0,{"role": "system", "content": prompt_get_user_information})
     print(2)
     model = "gpt-3.5-turbo-0613"
+
     response = openai.ChatCompletion.create(
         model=model,
         messages=chat_history,
