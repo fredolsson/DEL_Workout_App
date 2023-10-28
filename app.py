@@ -1,7 +1,6 @@
 import io
 from flask import Flask, request, jsonify, send_file, session
 from flask_session import Session
-import openai
 import os
 import bcrypt
 from flask_sqlalchemy import SQLAlchemy
@@ -254,7 +253,6 @@ def create_workout():
     
     try:
         user_id = get_user_id(request.json.get('username'))
-        
         exists = execute("SELECT role, content FROM generation_chat_history WHERE user_id = %s;",[user_id], commit=False)
         if len(exists) == 0:
             execute("INSERT INTO generation_chat_history (user_id, role, content) VALUES (%s, 'system', %s);", [user_id, prompt_create_scedule], commit=True)
@@ -284,6 +282,9 @@ def create_workout():
             print("inserting new workout")
             insert_into_database(user_id, response)
             print("inserted")
+            print("saving goals")
+            get_goals(chat_history[1:], user_id) # skicka allt förutom prompt
+            print("information inserted")
             delete_create_history(user_id)
             print("deleted")
             message = "done"

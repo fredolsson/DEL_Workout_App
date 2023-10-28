@@ -1,6 +1,7 @@
 import json
 import psycopg2
 from variables_and_prompts import *
+import openai
 
 
 
@@ -31,6 +32,30 @@ def delete_workout_for_user(user_id):
     
 def insert_specific_date(user_id, date):
     pass
+
+def get_goals(chat_history, user_id):
+    chat_history.append({"role": "system", "content": {prompt_get_user_information}})
+    model = "gpt-3.5-turbo-0613"
+    response = openai.ChatCompletion.create(
+        model=model,
+        messages=chat_history,
+        temperature=0,
+    )
+    
+    response = response.choices[0].message["content"]
+    json_format= response.split("{")[1]
+    json_format = json_format.split("}")[0]
+    json_format = "{"+ json_format+ "}"
+    json_format = json.loads(json_format)
+
+    # create database connection
+    for item in json_format:
+        the_thing = item
+        value = json_format[the_thing]
+        execute("INSERT INTO user_information (goal, user_id) VALUES (%s,%s);", [value, user_id], commit=True)
+        
+    
+    
 def get_user_id(username):
 
     try:
