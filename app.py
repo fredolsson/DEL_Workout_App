@@ -300,7 +300,7 @@ def create_workout():
 def get_goal():
     user_id = get_user_id(request.json.get('username'))
     goal = execute("SELECT goal FROM user_information WHERE user_id = %s", [user_id], commit=False)
-    return jsonify({"response": goal})
+    return jsonify({"response": goal[0]})
     
 
 if __name__ == '__main__':
