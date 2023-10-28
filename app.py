@@ -265,6 +265,7 @@ def create_workout():
             chat_history.append(msg_object)
 
         model = "gpt-3.5-turbo-0613"
+
         response = openai.ChatCompletion.create(
             model=model,
             messages=chat_history,
