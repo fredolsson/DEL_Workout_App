@@ -299,8 +299,14 @@ def create_workout():
 @app.route('/api/get_goal', methods=['POST'])
 def get_goal():
     user_id = get_user_id(request.json.get('username'))
-    goal = execute("SELECT goal FROM user_information WHERE user_id = %s", [user_id], commit=False)
-    return jsonify({"response": goal[0]})
+    data = execute("SELECT goal FROM user_information WHERE user_id = %s", [user_id], commit=False)
+    if len(data) == 0:
+        message = "No goal"
+        
+    else:
+        message = data[0][0]
+    
+    return jsonify({"response": message})
     
 
 if __name__ == '__main__':
