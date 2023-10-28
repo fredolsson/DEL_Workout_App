@@ -283,7 +283,8 @@ def create_workout():
             insert_into_database(user_id, response)
             print("inserted")
             print("saving goals")
-            get_goals(chat_history[1:], user_id) # skicka allt förutom prompt
+            chat_history.pop(0)
+            set_goals(chat_history, user_id) # skicka allt förutom prompt
             print("information inserted")
             delete_create_history(user_id)
             print("deleted")
@@ -295,6 +296,11 @@ def create_workout():
     
     return jsonify({"response": message})
     
+@app.route('/api/get_goal', methods=['POST'])
+def get_goal():
+    user_id = get_user_id(request.json.get('username'))
+    goal = execute("SELECT goal FROM user_information WHERE user_id = %s", [user_id], commit=False)
+    return jsonify({"response": goal})
     
 
 if __name__ == '__main__':
