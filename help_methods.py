@@ -33,8 +33,13 @@ def delete_workout_for_user(user_id):
 def insert_specific_date(user_id, date):
     pass
 
-def get_goals(chat_history, user_id):
-    chat_history.append({"role": "system", "content": {prompt_get_user_information}})
+def set_goals(chat_history, user_id):
+    
+    # remove old goals
+    execute("DELETE FROM user_information WHERE user_id = %s", [user_id], commit=True)
+    print(1)
+    chat_history.insert(0,{"role": "system", "content": prompt_get_user_information})
+    print(2)
     model = "gpt-3.5-turbo-0613"
     response = openai.ChatCompletion.create(
         model=model,
@@ -43,6 +48,7 @@ def get_goals(chat_history, user_id):
     )
     
     response = response.choices[0].message["content"]
+    print(response)
     json_format= response.split("{")[1]
     json_format = json_format.split("}")[0]
     json_format = "{"+ json_format+ "}"
