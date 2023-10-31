@@ -272,6 +272,7 @@ def create_workout():
             temperature=0,
         )
         response = response.choices[0].message["content"]
+        print(response)
         execute("INSERT INTO generation_chat_history (user_id, role, content) VALUES (%s, 'assistant', %s);", [user_id, response], commit = True)
         message = response
 
