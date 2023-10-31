@@ -266,6 +266,7 @@ def create_workout():
 
         model = "gpt-3.5-turbo-0613"
 
+        print("Är här breee, men börjar vänta nu....")
         response = openai.ChatCompletion.create(
             model=model,
             messages=chat_history,
